@@ -137,10 +137,11 @@ The system is composed of four microservices that work together seamlessly.
 
 To spin up all services (PostgreSQL + all microservices):
 create your own .env or renamed the provided .env.example and fill with appropriate postgres credential
-
+clone the url 
+git clone https://github.com/olugben/Techieplanet.git
 
 ```bash
-cd AppDevelopment
+cd Techieplanet/AppDevelopment
 ```
 ```bash
 docker compose up --build
