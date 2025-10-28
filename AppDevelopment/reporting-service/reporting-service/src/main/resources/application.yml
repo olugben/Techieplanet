@@ -1,0 +1,43 @@
+server:
+  port: 8082
+
+spring:
+  application:
+    name: reporting-service
+  datasource:
+    url: jdbc:postgresql://localhost:5432/reportingdb
+    username: postgres
+    password: 8599
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+    show-sql: true
+
+
+eureka:
+  instance:
+    prefer-ip-address: true
+    hostname: localhost
+
+  client:
+
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+
+
+
+student:
+  service:
+    base-url: http://student-service/api/students
+
+
