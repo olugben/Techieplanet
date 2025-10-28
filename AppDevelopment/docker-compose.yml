@@ -1,0 +1,133 @@
+
+
+services:
+  # -------------------------
+  # Databases
+  # -------------------------
+  postgres-student:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB_STUDENT}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - pg_student_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB_STUDENT}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - technet
+
+
+
+  # -------------------------
+  # Discovery / Eureka
+  # -------------------------
+  eureka-server:
+    build:
+      context: ./discovery-server/discovery-server
+      dockerfile: Dockerfile
+    image: discovery-server:latest
+    container_name: discovery-server
+    ports:
+      - "8761:8761"
+    environment:
+      - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE}
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O- http://localhost:8761/actuator/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    networks:
+      - technet
+
+  # -------------------------
+  # API Gateway
+  # -------------------------
+  api-gateway:
+    build:
+      context: ./api-gateway/api-gateway
+      dockerfile: Dockerfile
+    image: api-gateway:latest
+    ports:
+      - "8080:8080"
+    depends_on:
+      eureka-server:
+        condition: service_healthy
+    environment:
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=${EUREKA_CLIENT_SERVICEURL_DEFAULTZONE}
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O- http://localhost:8080/actuator/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 8
+    networks:
+      - technet
+
+  # -------------------------
+  # Student Service
+  # -------------------------
+  student-service:
+    build:
+      context: ./student-service/student-service
+      dockerfile: Dockerfile
+    image: student-service:latest
+    ports:
+      - "8081:8081"
+    depends_on:
+      postgres-student:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    environment:
+      - SPRING_DATASOURCE_URL=${SPRING_DATASOURCE_URL_STUDENT}
+      - SPRING_DATASOURCE_USERNAME=${SPRING_DATASOURCE_USERNAME_STUDENT}
+      - SPRING_DATASOURCE_PASSWORD=${SPRING_DATASOURCE_PASSWORD_STUDENT}
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=${EUREKA_CLIENT_SERVICEURL_DEFAULTZONE}
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O- http://localhost:8081/actuator/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 8
+    networks:
+      - technet
+
+  # -------------------------
+  # Reporting Service
+  # -------------------------
+  reporting-service:
+    build:
+      context: ./reporting-service/reporting-service
+      dockerfile: Dockerfile
+    image: reporting-service:latest
+    ports:
+      - "8082:8082"
+    depends_on:
+      student-service:
+        condition: service_started
+      eureka-server:
+        condition: service_healthy
+    environment:
+
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=${EUREKA_CLIENT_SERVICEURL_DEFAULTZONE}
+      - STUDENT_SERVICE_BASE_URL=${STUDENT_SERVICE_BASE_URL}
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O- http://localhost:8082/actuator/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 8
+    networks:
+      - technet
+
+# -------------------------
+# Volumes and Networks
+# -------------------------
+volumes:
+  pg_student_data:
+
+
+networks:
+  technet:
+    driver: bridge
