@@ -136,7 +136,7 @@ The system is composed of four microservices that work together seamlessly.
 ##  Running with Docker Compose
 
 To spin up all services (PostgreSQL + all microservices):
-
+create your own .env or renamed the provided .env.example and fill with appropriate postgres credential
 ```bash
 docker compose up --build
 ```
